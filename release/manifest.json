@@ -1,0 +1,47 @@
+{
+  "version": 1,
+  "builds": [
+    {
+      "edition": "Xbox Live Arcade",
+      "version": "1.0.0",
+      "xex_sha256": "f7c2a78bacb4e3b15daa1b60e2828d0a410524fc77e26e925d9a464466066d40",
+      "image_sha256": "989ea41cb7513e4b3aeffa3fe8be5aa2740f7131e3c6411184a4d19572fc8852",
+      "nro": "sa2.nro",
+      "nro_sha256": "c5ab708d75e42c6574196bce17abdbd74d90567ec0b615221d23dca0555703a2",
+      "nro_size": 55108203,
+      "library_sha256": "cbbd8d93cbe7ebc4ebc3a28ffec385c33c2335b285f7c1b728d5cd9f4307302c",
+      "library_size": 1057100,
+      "index_sha256": "f4a012c96ce96de97a116cae489d426ed53f2843277f9ffb0dae7479f17fabe8",
+      "index_size": 38528,
+      "game_files": 3709,
+      "game_bytes": 2516685413,
+      "game_data_fnv": "bce9551142a7f92e",
+      "shaders": {
+        "folder": "Shader/xbox360/obj",
+        "templates": { "ps": "SonicPS_Smoke.wpu", "vs": "SonicVS.wvu" },
+        "wrap": [
+          { "stage": "ps", "offset": 18516, "size": 60 },
+          { "stage": "ps", "offset": 18736, "size": 336 },
+          { "stage": "ps", "offset": 15948, "size": 36 },
+          { "stage": "ps", "offset": 14232, "size": 1716 },
+          { "stage": "ps", "offset": 42248, "size": 108 },
+          { "stage": "ps", "offset": 21172, "size": 60 },
+          { "stage": "ps", "offset": 42528, "size": 60 },
+          { "stage": "vs", "offset": 17904, "size": 60 },
+          { "stage": "vs", "offset": 41724, "size": 120 },
+          { "stage": "vs", "offset": 17736, "size": 108 },
+          { "stage": "vs", "offset": 18408, "size": 108 },
+          { "stage": "vs", "offset": 13944, "size": 96 },
+          { "stage": "vs", "offset": 18576, "size": 60 },
+          { "stage": "vs", "offset": 5192, "size": 96 },
+          { "stage": "vs", "offset": 6088, "size": 96 },
+          { "stage": "vs", "offset": 18640, "size": 96 }
+        ],
+        "patch": [
+          { "stage": "ps", "template": "SonicPS_ShadowGen.wpu", "offset": 5288, "size": 36 }
+        ],
+        "containers_sha256": "139b12cb4400e61c26d391af4541f442d44e10868c0e9e0a5095bfeac1ae00cf"
+      }
+    }
+  ]
+}
