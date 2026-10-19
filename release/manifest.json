@@ -3,12 +3,12 @@
   "builds": [
     {
       "edition": "Xbox Live Arcade",
-      "version": "1.0.1",
+      "version": "1.0.2.1",
       "xex_sha256": "f7c2a78bacb4e3b15daa1b60e2828d0a410524fc77e26e925d9a464466066d40",
       "image_sha256": "989ea41cb7513e4b3aeffa3fe8be5aa2740f7131e3c6411184a4d19572fc8852",
       "nro": "sa2.nro",
-      "nro_sha256": "e6f77f3fdc171ae3a0f3b389da2559973a1e9f90c94f380da7e1f8aef5d34e01",
-      "nro_size": 54989419,
+      "nro_sha256": "d8db93683069107d79d22c3bded0a18ed0f880469c1faab147490d4c9f67154d",
+      "nro_size": 54977131,
       "library_sha256": "cbbd8d93cbe7ebc4ebc3a28ffec385c33c2335b285f7c1b728d5cd9f4307302c",
       "library_size": 1057100,
       "index_sha256": "f4a012c96ce96de97a116cae489d426ed53f2843277f9ffb0dae7479f17fabe8",
