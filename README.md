@@ -21,16 +21,23 @@ your computer.
 2. Identifies the game by the SHA-256 of `default.xex` (or of its decompressed image, for an executable another tool
    rebuilt) and picks its build from `release/manifest.json`.
 3. Downloads that build's NRO and checks its SHA-256.
-4. Makes the shader library from the game's own files: the shader containers of `Shader/xbox360/obj`, and Direct3D's
-   built-in shaders, whose microcode is read from the decompressed `default.xex` and put into containers exactly as
-   the tested library has them. It translates the Xbox 360 microcode to HLSL (XenosRecomp), compiles it to SPIR-V
-   (DXC) and packs the library. The library must match, byte for byte, the one the NRO was tested with.
+4. Makes the game's shaders from its own files. From sa2-nx 1.0.3 the NRO draws with Renut's renderer on deko3d,
+   and its 103 game shaders come from `deko3d_glsl.bin` beside it, which the page makes (`lib/deko3d.js`, the chain of
+   peggle2-nx-installer): the shader containers of `Shader/xbox360/obj` and those compiled into the decompressed
+   `default.xex`, translated to HLSL by Renut's translator (`wasm/renut_hlsl`), compiled to SPIR-V by DXC, turned into
+   GLSL by SPIRV-Cross (`wasm/spirv_cross`), converted and optimised for deko3d (`lib/deko3d_glsl.js`: sa2-nx's
+   `tools/deko3d_glsl.py` and `tools/deko3d_glsl_opt.py`, the build's passes) and packed (`lib/deko3d_package.js`). The
+   package must match the build's SHA-256: 97 of the 103 shaders are the NRO's tested GLSL byte for byte, the other 6
+   the same programs with other numbers for their temporaries (DXC v2025.1 here, 1.8 in the native chain). The
+   console compiles each shader variant once, at first use, and keeps it in `deko3d_shaders.bin`. Before 1.0.3 the
+   page made the native renderer's shader library (`sa2_shaders.mesp`) the same way, and still does for a build whose
+   entry has one.
 5. Writes the game files as the asset pack the console mounts (`game_root.nxpack` + `game_root.nxidx`), the format of
    the SDK's PackDevice. The console doesn't have to build it on its first start.
 6. Streams the zip to disk through the service worker, so a 2.6 GB package never has to fit in memory.
 
-The zip holds `sa2-nx/sa2.nro` with its `LICENSES.txt`, `sa2_shaders.mesp` + `.idx`, `game_root.nxpack` +
-`.nxidx` and, if you chose it, `dlc/SonicAdventure2Battle`. The update zip holds the NRO, its licenses and the shaders
+The zip holds `sa2-nx/sa2.nro` with its `LICENSES.txt`, `deko3d_glsl.bin` (1.0.3 on; before it `sa2_shaders.mesp` +
+`.idx`), `game_root.nxpack` + `.nxidx` and, if you chose it, `dlc/SonicAdventure2Battle`. The update zip holds the NRO, its licenses and the shaders
 (and the DLC if you chose it). Neither holds `sa2.toml`: the game writes it at its first start, so an update never
 overwrites your settings.
 
@@ -44,9 +51,10 @@ connection.
 | `index.html`, `app.js` | The page and its interface (the game's six languages, `lib/i18n.js`) |
 | `worker.js` | Builds the package off the main thread |
 | `sw.js` | Offline cache and the download stream |
-| `lib/` | STFS package reader, XEX reader, shader containers and library, asset pack writer, zip writer |
-| `wasm/` | WebAssembly builds of the shader translator, DXC, the library packer and the LZX decoder |
-| `shader_common.h` | The translator's HLSL header (from `shaders/XenosRecomp` of sa2-nx) |
+| `lib/` | STFS package reader, XEX reader, shader containers and library, the deko3d shader chain (`deko3d*.js`), asset pack writer, zip writer |
+| `wasm/` | WebAssembly builds of the shader translators (the native renderer's and Renut's), DXC, SPIRV-Cross, the library packer and the LZX decoder |
+| `shader_common.h` | The native renderer's translator's HLSL header (from `shaders/XenosRecomp` of sa2-nx) |
+| `renut_shader_common.h` | Renut's translator's HLSL header (from `app/thirdparty/reblue-XenosRecomp/XenosRecomp` of sa2-nx) |
 | `release/` | The list of builds and the licenses of the NRO |
 | `test/` | Node scripts and a browser page that run the same code as the page |
 
@@ -54,6 +62,9 @@ connection.
 `shaders/wasm/build_wasm_tools.sh` (Emscripten). `wasm/dxc_web.*` is the WebAssembly DXC of
 [nfsmw-nx-installer](https://github.com/StevensND/nfsmw-nx-installer) (unmodified DXC v2025.1 with the
 `dxc_web.cpp` wrapper that is also in `shaders/wasm/` of sa2-nx); see [NOTICES.md](NOTICES.md).
+`wasm/renut_hlsl.*` and `wasm/spirv_cross.*` are peggle2-nx-installer's (`wasm/src/deko3d/build_wasm_deko3d.sh`):
+Renut's translator from the same source as sa2-nx's `app/thirdparty/reblue-XenosRecomp` (identical files) with
+`tools/renut_hlsl_frontend.cpp` of sa2-nx, and SPIRV-Cross 22b22f56.
 
 ## Deployment
 
@@ -63,14 +74,16 @@ and publishes the page on GitHub Pages. It runs on every push to `main`; after p
 from the Actions tab. Pages must be set to deploy from GitHub Actions (Settings > Pages > Source).
 
 To publish a new build, update the build's entry in `release/manifest.json`. This script fills in the NRO's SHA-256
-and size and the fingerprints of the game and of the shader library, made from your own copy with the page's code:
+and size and the fingerprints of the game and of the shaders, made from your own copy with the page's code. For
+1.0.3 on (the deko3d renderer only), first `test/deko3d_node.mjs` makes `deko3d_glsl.bin` and its entry (compared
+with sa2-nx's native GLSL), then:
 
 ```sh
-node test/release_node.mjs <game package> <sa2.nro> --version 1.0.1 --write
+node test/deko3d_node.mjs <game package> <sa2-nx>/out/deko3d_shaders/glsl_opt --out deko3d_glsl.bin
+node test/release_node.mjs <game package> <sa2.nro> --version 1.0.3 --deko3d deko3d_glsl.bin.manifest.json --no-library --write
 ```
 
-Test the NRO with exactly that library first: the library is in `sa2_shaders.mesp` of a zip made by
-`test/package_node.mjs`; on the PC build, `SA2_SHADER_LIBRARY=<path>` loads it.
+Test the NRO with exactly those shaders first: `deko3d_glsl.bin` beside it on the SD card (or in Ryujinx's).
 
 ## Testing locally
 

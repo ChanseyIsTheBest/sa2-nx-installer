@@ -3,6 +3,8 @@ import createHlslModule from './wasm/hlsl.mjs';
 import createDxcModule from './wasm/dxc_web.mjs';
 import createPackModule from './wasm/pack.mjs';
 import createLzxModule from './wasm/lzx.mjs';
+import createRenutHlslModule from './wasm/renut_hlsl.mjs';
+import createSpirvCrossModule from './wasm/spirv_cross.mjs';
 import { createPackage, findGame, identifyGame, lzxStep, programPath } from './lib/installer.js';
 import { setLanguage, t } from './lib/i18n.js';
 
@@ -91,10 +93,12 @@ self.onmessage = async ({ data }) => {
       throw new Error(t('notSupportedYet', { hash: xexHash }));
     }
     log(t('downloadingBuild'));
-    const [nro, licenses, shaderCommon] = await Promise.all([
+    const [nro, licenses, shaderCommon, renutShaderCommon] = await Promise.all([
       fetchBytes(programPath(build)),
       fetchBytes('./release/LICENSES.txt'),
       fetchBytes('./shader_common.h'),
+      // the deko3d renderer's translator header (sa2-nx's app/thirdparty/reblue-XenosRecomp/XenosRecomp/)
+      build.deko3d ? fetchBytes('./renut_shader_common.h') : null,
     ]);
     const nroHash = await sha256(nro);
     if (nroHash !== build.nro_sha256) {
@@ -106,7 +110,12 @@ self.onmessage = async ({ data }) => {
       pack: await createPackModule(quiet()),
       lzx,
     };
-    const result = await createPackage(chosen, { manifest, nro, licenses, shaderCommon }, modules, sink, log, progress,
+    if (build.deko3d) {
+      modules.renutHlsl = await createRenutHlslModule(quiet());
+      modules.spirvCross = await createSpirvCrossModule(quiet());
+    }
+    const release = { manifest, nro, licenses, shaderCommon, renutShaderCommon };
+    const result = await createPackage(chosen, release, modules, sink, log, progress,
       (size) => postMessage({ type: 'size', size }), { update: Boolean(data.update) });
     postMessage({ type: 'done', result });
   } catch (error) {
