@@ -3,18 +3,18 @@
   "builds": [
     {
       "edition": "Xbox Live Arcade",
-      "version": "1.0.3",
+      "version": "1.0.3.1",
       "xex_sha256": "f7c2a78bacb4e3b15daa1b60e2828d0a410524fc77e26e925d9a464466066d40",
       "image_sha256": "989ea41cb7513e4b3aeffa3fe8be5aa2740f7131e3c6411184a4d19572fc8852",
       "nro": "sa2.nro",
-      "nro_sha256": "fb4e0da7156ac80f1c2c9a88a7dbbd8e6344e62f3f87ae59281686b342e0732e",
-      "nro_size": 47190635,
+      "nro_sha256": "c0057ec6701301c15cc9151484a80de3091ebd796b11b7a02bf3220bed1749ab",
+      "nro_size": 47202923,
       "game_files": 3709,
       "game_bytes": 2516685413,
       "game_data_fnv": "bce9551142a7f92e",
       "deko3d": {
         "folder": "Shader/xbox360/obj",
-        "passes": "scale1,fragscale,alpha,tess,bonerow,vszero,vsout,pszero,pred,predmul,sext,bool01,sel,alphamask,earlyhoist,ifmerge,dowhile,selsame,deadcomp,guardsel,lightbranch,nullps,txq,earlyz,gpr32,bonesel,aw4",
+        "passes": "alpha,tess,bonerow,vszero,vsout,pszero,pred,predmul,sext,bool01,sel,alphamask,earlyhoist,ifmerge,dowhile,selsame,deadcomp,guardsel,lightbranch,nullps,txq,earlyz,gpr32,bonesel,aw4",
         "shaders": [
           "ps_057F2E029EC49BDC",
           "ps_079E6254B3BBBA44",
@@ -225,8 +225,8 @@
           "f9d9d81474a50a43408fced65546a694256cdf281a034aa7cda77ab5d9b96641",
           "fcebbaf96b1ed4dd0cd006de5518bf14765a21c04236babec5fdde7e29a82f90"
         ],
-        "package_sha256": "841c027eebc41e3f9b5b5064252431b8a64bf6caccc02dc46b1572fc2cf6fc96",
-        "package_size": 816808
+        "package_sha256": "fafac4461cb0b1fac6d35568b1ca9780074b2c9983e4b035806efd2078c55752",
+        "package_size": 818368
       }
     }
   ]
