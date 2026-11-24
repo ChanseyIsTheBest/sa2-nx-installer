@@ -1,12 +1,12 @@
 {
-  "version": "1.0.7",
+  "version": "1.0.8",
   "builds": [
     {
       "edition": "Xbox Live Arcade",
-      "version": "1.0.7",
+      "version": "1.0.8",
       "xex_sha256": "f7c2a78bacb4e3b15daa1b60e2828d0a410524fc77e26e925d9a464466066d40",
       "nro": "sa2.nro",
-      "nro_sha256": "80704a3ac16e996bfec11db8d50836803c14b1e495cbb4d30b8e3e048c106b4e",
+      "nro_sha256": "c2914e8a3b675abf3e07d6d5e3c47ab61637c28b0a3810afc087bb4c360556cb",
       "game_files": {
         "achievement01.png": 13449,
         "achievement02.png": 9211,
