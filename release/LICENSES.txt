@@ -9,6 +9,10 @@ It contains code from these projects and libraries, under their own licenses (fu
   sa2-nx, by ChanseyIsTheBest .......................................... GPL-3.0
   masseffect-nx, by NebadasSwifty (the native renderer it grew from) ... GPL-3.0
   banjo-nx, by ChanseyIsTheBest (Renut's renderer as it carries it) .... GPL-3.0
+  renut-nx and the ultimate base the sibling ports share, by
+    ChanseyIsTheBest .................................................. GPL-3.0, BSD-3-Clause (SDK parts)
+  OpenSA2, by kittycache (the control options), with the SA2 Mod Loader
+    code "Press B to Somersault" by Hyper and MainMemory .............. GPL-3.0-only
   reNut, by masterspike52 (the Direct3D-level renderer) ................ used with its author's permission
   plume, by renderbag and contributors (graphics API layer) ............ MIT
   deko3d, by fincs (the Switch's graphics API library) ................. zlib License
@@ -20,6 +24,12 @@ It contains code from these projects and libraries, under their own licenses (fu
     the Xenia project contributors) .................................... BSD-3-Clause
   Mesa (its nouveau shader compiler code, which uam imports) ........... MIT
   FFmpeg (libavcodec, libavutil) ....................................... LGPL-2.1-or-later
+  FFmpeg 7.1 as devkitPro's switch-ffmpeg builds it, with averne's
+    nvtegra backend (the H.265 movies' decoder) ........................ GPL (built with --enable-gpl)
+  libopus 1.3, as devkitPro's switch-libopus builds it (the music) ..... BSD-3-Clause
+  LZ4 1.10.0 (lib), by Yann Collet (the packed game files) ............. BSD-2-Clause
+  ZXC 0.15.0, by Bertrand Lebonnois (the packed movies), with
+    rapidhash by Nicolas De Carli ..................................... BSD-3-Clause; MIT
   libmspack, by Stuart Caie ............................................ LGPL-2.1
   glslang .............................................................. BSD-3-Clause and others
   SPIRV-Headers ........................................................ MIT (Khronos)
@@ -37,7 +47,8 @@ It contains code from these projects and libraries, under their own licenses (fu
   libnx ................................................................ ISC
   Zstandard ............................................................ BSD-3-Clause
 
-FFmpeg and libmspack are covered by the GNU Lesser General Public License, version 2.1. Their source code, including
+FFmpeg (the copy in the SDK) and libmspack are covered by the GNU Lesser General Public License, version 2.1; the
+Switch build of FFmpeg that decodes the H.265 movies is configured with --enable-gpl and is covered by the GPL. Their source code, including
 the files changed for this port, and everything needed to rebuild sa2.nro and relink it with modified versions of
 those libraries, are available at https://github.com/ChanseyIsTheBest/sa2-nx (see THIRD_PARTY_NOTICES.md and
 docs/building.md there). FFmpeg is https://ffmpeg.org; libmspack is https://www.cabextract.org.uk/libmspack/.
@@ -47,7 +58,8 @@ and dlc/ are made from your own copy of the game.
 They are not covered by these licenses and must not be shared.
 
 ====================================================================================================================
-GNU General Public License, version 3 (sa2-nx, masseffect-nx, nfsmw-nx, NFSMW Recompiled, banjo-nx)
+GNU General Public License, version 3 (sa2-nx, masseffect-nx, nfsmw-nx, NFSMW Recompiled, banjo-nx, renut-nx,
+OpenSA2, and FFmpeg as built with --enable-gpl)
 ====================================================================================================================
 
                     GNU GENERAL PUBLIC LICENSE
@@ -2614,3 +2626,171 @@ SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PRO
 SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY,
 WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+
+====================================================================================================================
+libopus (BSD-3-Clause)
+====================================================================================================================
+
+Copyright 2001-2011 Xiph.Org, Skype Limited, Octasic,
+                    Jean-Marc Valin, Timothy B. Terriberry,
+                    CSIRO, Gregory Maxwell, Mark Borgerding,
+                    Erik de Castro Lopo
+
+Redistribution and use in source and binary forms, with or without
+modification, are permitted provided that the following conditions
+are met:
+
+- Redistributions of source code must retain the above copyright
+notice, this list of conditions and the following disclaimer.
+
+- Redistributions in binary form must reproduce the above copyright
+notice, this list of conditions and the following disclaimer in the
+documentation and/or other materials provided with the distribution.
+
+- Neither the name of Internet Society, IETF or IETF Trust, nor the
+names of specific contributors, may be used to endorse or promote
+products derived from this software without specific prior written
+permission.
+
+THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+``AS IS'' AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
+A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER
+OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL,
+EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO,
+PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR
+PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF
+LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING
+NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
+SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+
+Opus is subject to the royalty-free patent licenses which are
+specified at:
+
+Xiph.Org Foundation:
+https://datatracker.ietf.org/ipr/1524/
+
+Microsoft Corporation:
+https://datatracker.ietf.org/ipr/1914/
+
+Broadcom Corporation:
+https://datatracker.ietf.org/ipr/1526/
+
+====================================================================================================================
+LZ4 (BSD-2-Clause: the files of its lib directory, which is all this build uses)
+====================================================================================================================
+
+This repository uses 2 different licenses :
+- all files in the `lib` directory use a BSD 2-Clause license
+- all other files use a GPL-2.0-or-later license, unless explicitly stated otherwise
+
+Relevant license is reminded at the top of each source file,
+and with presence of COPYING or LICENSE file in associated directories.
+
+This model is selected to emphasize that
+files in the `lib` directory are designed to be included into 3rd party applications,
+while all other files, in `programs`, `tests` or `examples`,
+are intended to be used "as is", as part of their intended scenarios,
+with no intention to support 3rd party integration use cases.
+
+LZ4 - Fast LZ compression algorithm
+Copyright (C) 2011-2023, Yann Collet.
+
+BSD 2-Clause License (http://www.opensource.org/licenses/bsd-license.php)
+
+Redistribution and use in source and binary forms, with or without
+modification, are permitted provided that the following conditions are
+met:
+
+    * Redistributions of source code must retain the above copyright
+notice, this list of conditions and the following disclaimer.
+    * Redistributions in binary form must reproduce the above
+copyright notice, this list of conditions and the following disclaimer
+in the documentation and/or other materials provided with the
+distribution.
+
+THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+"AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
+A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
+OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
+LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
+THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+(INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+
+You can contact the author at :
+ - LZ4 homepage : http://www.lz4.org
+ - LZ4 source repository : https://github.com/lz4/lz4
+
+====================================================================================================================
+ZXC (BSD-3-Clause), with rapidhash (MIT)
+====================================================================================================================
+
+BSD 3-Clause License
+
+Copyright (c) 2025, Bertrand Lebonnois and contributors
+
+Redistribution and use in source and binary forms, with or without
+modification, are permitted provided that the following conditions are met:
+
+1. Redistributions of source code must retain the above copyright notice, this
+   list of conditions and the following disclaimer.
+
+2. Redistributions in binary form must reproduce the above copyright notice,
+   this list of conditions and the following disclaimer in the documentation
+   and/or other materials provided with the distribution.
+
+3. Neither the name of ZXC nor the names of its
+   contributors may be used to endorse or promote products derived from
+   this software without specific prior written permission.
+
+THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE
+FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
+DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
+SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
+CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
+OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+
+Third-party notices for ZXC
+===========================
+
+ZXC itself is licensed under the BSD 3-Clause License (see LICENSE).
+The components below are bundled with it under their own licenses.
+
+==============================================================================
+rapidhash
+Copyright (C) 2025 Nicolas De Carli
+License: MIT (Expat)
+Source: src/lib/vendors/rapidhash.h
+==============================================================================
+
+rapidhash - Very fast, high quality, platform-independent hashing algorithm.
+Copyright (C) 2025 Nicolas De Carli
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+
+You can contact the author at:
+  - rapidhash source repository: https://github.com/Nicoshev/rapidhash

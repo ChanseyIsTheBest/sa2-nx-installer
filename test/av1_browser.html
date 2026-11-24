@@ -1,0 +1,89 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>AV1 Encode Test</title>
+<style>
+  :root { color-scheme: light dark; --bg: #fff; --text: #111; }
+  @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) { --bg: #111; --text: #eee; } }
+  :root[data-theme="dark"] { --bg: #111; --text: #eee; }
+  body { background: var(--bg); color: var(--text); font: 14px/1.5 system-ui, sans-serif; margin: 16px; }
+  pre { white-space: pre-wrap; }
+</style>
+</head>
+<body>
+<!-- culdcept-nx-installer (2026-11-20, the user: "check which movies are 30 fps and test AV1 on those"): one movie's
+     picture encoded to AV1 by this browser's WebCodecs encoder (the WMV3 decoder in WebAssembly as lib/movies.js uses
+     it), at ?fraction= of its video bitrate (default 0.25), a keyframe every 120 frames; the AV1 frames as an IVF file
+     written to serve.py's --test-out file, to compare with the H.265 on a PC. An experiment: the installer makes H.265.
+       python serve.py 8193 . --test-files <game folder> --test-out <out.ivf>
+       http://127.0.0.1:8193/test/av1_browser.html?movie=data/MOVIE/credit_us.wmv&fraction=0.25 -->
+<h1>AV1 encode test</h1>
+<pre id="log"></pre>
+<script type="module">
+import createWmv3Module from '../wasm/wmv3.mjs';
+import { Asf } from '../lib/asf.js';
+const out = document.getElementById('log');
+const log = (t) => { out.textContent += t + '\n'; };
+const q = new URLSearchParams(location.search);
+const movie = q.get('movie') || 'data/MOVIE/CI_00.wmv';
+const fraction = Number(q.get('fraction') || 0.25);
+const bytes = new Uint8Array(await (await fetch(`/_test/${movie.split('/').map(encodeURIComponent).join('/')}`)).arrayBuffer());
+const asf = new Asf(bytes);
+const video = asf.mediaObjects().filter((o) => o.stream === asf.videoStream);
+const seconds = (video[video.length - 1].time - video[0].time) / 1000 * video.length / (video.length - 1);
+const fps = video.length / seconds;
+const kbps = video.reduce((n, o) => n + o.data.length, 0) * 8 / seconds / 1000 * fraction;
+log(`${movie}: ${video.length} frames, ${fps.toFixed(2)} fps, AV1 at ${kbps.toFixed(0)} kbit/s (${fraction * 100} %)`);
+const config = { codec: 'av01.0.05M.08', width: asf.width, height: asf.height, bitrate: Math.round(kbps * 1000),
+                 bitrateMode: 'variable', framerate: Math.round(fps), latencyMode: 'quality',
+                 hardwareAcceleration: 'no-preference' };
+const support = await VideoEncoder.isConfigSupported(config);
+log(`AV1 encoder: ${support.supported ? 'available' : 'NOT available'}`);
+if (!support.supported) { log('DONE'); throw new Error('no AV1'); }
+const wmv3 = await createWmv3Module({ print: () => {}, printErr: () => {} });
+const seq = wmv3._wmv3_malloc(Math.max(1, asf.codecData.length));
+wmv3.HEAPU8.set(asf.codecData, seq);
+wmv3._wmv3_open(seq, asf.codecData.length, asf.width, asf.height);
+const frameBytes = asf.width * asf.height * 3 / 2;
+let input = wmv3._wmv3_malloc(1 << 20), inputSize = 1 << 20;
+const chunks = [];
+let failure = null;
+const encoder = new VideoEncoder({
+  output: (c) => { const d = new Uint8Array(c.byteLength); c.copyTo(d); chunks.push(d); },
+  error: (e) => { failure = e; },
+});
+encoder.configure(config);
+const t0 = performance.now();
+for (let i = 0; i < video.length && !failure; ++i) {
+  const o = video[i];
+  if (o.data.length > inputSize) { wmv3._wmv3_free(input); inputSize = o.data.length; input = wmv3._wmv3_malloc(inputSize); }
+  wmv3.HEAPU8.set(o.data, input);
+  if (wmv3._wmv3_decode(input, o.data.length) !== 1) { log(`frame ${i}: no picture`); continue; }
+  const p = wmv3._wmv3_picture();
+  const frame = new VideoFrame(wmv3.HEAPU8.slice(p, p + frameBytes), { format: 'I420', codedWidth: asf.width,
+    codedHeight: asf.height, timestamp: Math.round(i * 1e6 / fps), duration: Math.round(1e6 / fps) });
+  encoder.encode(frame, { keyFrame: i % 120 === 0 });
+  frame.close();
+  while (encoder.encodeQueueSize > 8 && !failure) await new Promise((r) => setTimeout(r, 1));
+  if (i % 500 === 0) log(`  ${i} frames, ${(i / ((performance.now() - t0) / 1000)).toFixed(1)} fps`);
+}
+await encoder.flush();
+const s = (performance.now() - t0) / 1000;
+if (failure) log(`failed: ${failure.message || failure}`);
+// IVF: 32-byte header, then a 12-byte header (size, 64-bit timestamp) per frame
+const total = chunks.reduce((n, c) => n + 12 + c.length, 32);
+const ivf = new Uint8Array(total), v = new DataView(ivf.buffer);
+ivf.set(new TextEncoder().encode('DKIF'), 0); v.setUint16(4, 0, true); v.setUint16(6, 32, true);
+ivf.set(new TextEncoder().encode('AV01'), 8); v.setUint16(12, asf.width, true); v.setUint16(14, asf.height, true);
+v.setUint32(16, Math.round(fps * 1000), true); v.setUint32(20, 1000, true); v.setUint32(24, chunks.length, true);
+let at = 32;
+chunks.forEach((c, i) => { v.setUint32(at, c.length, true); v.setUint32(at + 4, i, true); ivf.set(c, at + 12); at += 12 + c.length; });
+log(`AV1: ${chunks.length} frames, ${(total / 1048576).toFixed(2)} MB, ${(chunks.length / s).toFixed(1)} fps encode, ${s.toFixed(0)} s`);
+const put = await fetch('/_test_write?offset=0', { method: 'POST', body: ivf });
+log(`written to the test output: ${put.status}`);
+log('DONE');
+</script>
+</body>
+</html>

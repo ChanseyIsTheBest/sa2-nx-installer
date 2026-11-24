@@ -1,5 +1,13 @@
-# The NRO is a release asset of the sa2-nx repository; the deployment workflow downloads it.
-release/*.nro
-*.zip
-node_modules/
+# renut_nx_ultimate_installer: local tooling and test outputs (game data never belongs here)
+.claude/
 __pycache__/
+*.log
+node_modules/
+wasm/src/*/build/
+test/out_*
+*.lz4b
+*.zip
+# Pyodide's standard library: the page loads it (blur-nx-installer de297ce found it never committed: shaders failed)
+!vendor/pyodide/python_stdlib.zip
+# sa2-nx-installer: the NRO is a release asset of the sa2-nx repository; the deployment workflow downloads it
+release/*.nro

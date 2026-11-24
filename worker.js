@@ -1,123 +1,162 @@
-// Runs the whole package build off the main thread and streams the zip to the download service worker.
-import createHlslModule from './wasm/hlsl.mjs';
-import createDxcModule from './wasm/dxc_web.mjs';
-import createPackModule from './wasm/pack.mjs';
-import createLzxModule from './wasm/lzx.mjs';
+// renut_nx_ultimate_installer: makes the package off the page's thread (lib/install.js) and streams the zip to the
+// download service worker (sw.js). From rr6-nx-installer's and kameo-nx-installer's worker.js (bejeweled3-nx-installer's,
+// nfsmw-nx-installer's download stream, GPL-3.0).
 import createRenutHlslModule from './wasm/renut_hlsl.mjs';
-import createSpirvCrossModule from './wasm/spirv_cross.mjs';
-import { createPackage, findGame, identifyGame, lzxStep, programPath } from './lib/installer.js';
-import { setLanguage, t } from './lib/i18n.js';
+import createLzxModule from './wasm/lzx.mjs';
+import createXexpModule from './wasm/xexp.mjs';
+import { buildPackage } from './lib/install.js';
+import { readStfs } from './lib/stfs.js';
+import { CODECS } from './lib/lz4b.js';
+import { glslMaker, uamCompile, workerPool } from './lib/pool.js';
 
-const log = (text) => postMessage({ type: 'log', text });
-const progress = (fraction) => postMessage({ type: 'progress', fraction });
+const quiet = () => ({ print: () => {}, printErr: () => {} });
 
 async function fetchBytes(url) {
-  const response = await fetch(url);
-  if (!response.ok) {
-    throw new Error(t('downloadFailed', { url, status: response.status }));
-  }
+  // no-cache (blur-nx-installer, 2026-11-19): the browser asks the server whether its copy is still current (an
+  // unchanged NRO still comes from its cache), so an old copy (GitHub Pages allows 10 minutes) never meets a newer
+  // manifest
+  const response = await fetch(url, { cache: 'no-cache' });
+  if (!response.ok) throw new Error(`${url}: HTTP ${response.status}`);
   return new Uint8Array(await response.arrayBuffer());
 }
 
 async function sha256(bytes) {
-  return [...new Uint8Array(await crypto.subtle.digest('SHA-256', bytes))]
-    .map((b) => b.toString(16).padStart(2, '0'))
-    .join('');
+  const d = new Uint8Array(await crypto.subtle.digest('SHA-256', bytes));
+  return Array.from(d, (b) => b.toString(16).padStart(2, '0')).join('');
+}
+
+// A release file, checked against the SHA-256 the manifest gives for it.
+async function fetchRelease(name, hash) {
+  const bytes = await fetchBytes(`./release/${name}`);
+  const got = await sha256(bytes);
+  if (hash && got !== hash) throw new Error(`release/${name} is not the one the manifest names (${got})`);
+  return bytes;
 }
 
 // Sends every write as one chunk, and only when the download has asked for more ("pull").
 function portSink(port) {
-  let credits = 0;
-  let cancelled = false;
-  let waiting = null;
+  let credits = 0, cancelled = false, waiting = null;
   port.onmessage = ({ data }) => {
-    if (data.type === 'pull') {
-      credits++;
-    } else if (data.type === 'cancel') {
-      cancelled = true;
-    }
-    if (waiting) {
-      const wake = waiting;
-      waiting = null;
-      wake();
-    }
+    if (data.type === 'pull') credits++;
+    else if (data.type === 'cancel') cancelled = true;
+    if (waiting) { const wake = waiting; waiting = null; wake(); }
   };
   return {
     async write(bytes) {
       while (!credits) {
-        if (cancelled) {
-          throw new Error(t('cancelled'));
-        }
+        if (cancelled) throw new Error('the download was cancelled');
         await new Promise((resolve) => (waiting = resolve));
       }
-      if (cancelled) {
-        throw new Error(t('cancelled'));
-      }
+      if (cancelled) throw new Error('the download was cancelled');
       credits--;
       const copy = bytes.slice();
       port.postMessage({ type: 'chunk', buffer: copy.buffer }, [copy.buffer]);
     },
-    async close() {
-      port.postMessage({ type: 'end' });
-    },
-    fail(message) {
-      port.postMessage({ type: 'error', message });
-    },
+    async close() { port.postMessage({ type: 'end' }); },
+    fail(message) { port.postMessage({ type: 'error', message }); },
   };
 }
 
-// The files the page received from the player, in the form lib/installer.js reads them.
-function chosenFiles(entries) {
-  return entries.map(({ path, file }) => ({
-    path,
-    size: file.size,
-    read: async (offset, length) => new Uint8Array(await file.slice(offset, offset + length).arrayBuffer()),
+// The game's files: { path (in the game folder), size, read(offset, length) } from the page's Files, or for
+// test/browser.html from the test server (HTTP range requests). A file inside a disc image has the image as its file
+// and its offset there (lib/xiso.js).
+// sa2-nx-ult-installer (2026-11-21): a file inside SA2's LIVE package (e.stfs) is read through lib/stfs.js, the package
+// parsed once per package file.
+const stfsPackages = new WeakMap();
+function stfsFile(pkgFile, path) {
+  if (!stfsPackages.has(pkgFile)) {
+    const read = async (o, n) => new Uint8Array(await pkgFile.slice(o, o + n).arrayBuffer());
+    stfsPackages.set(pkgFile, readStfs(read, pkgFile.size).then((p) => new Map(p.files.map((f) => [f.path.toLowerCase(), f]))));
+  }
+  return stfsPackages.get(pkgFile).then((m) => {
+    const f = m.get(path.toLowerCase());
+    if (!f) throw new Error(`${path}: not in the package`);
+    return f;
+  });
+}
+
+function gameFiles(entries) {
+  return entries.map((e) => ({
+    path: e.path,
+    size: e.size,
+    read: e.stfs
+      ? async (offset, length) => (await stfsFile(e.file, e.path)).read(offset, length)
+      : e.file
+      ? async (offset, length) => {
+          const at = (e.offset || 0) + offset;
+          return new Uint8Array(await e.file.slice(at, at + length).arrayBuffer());
+        }
+      : async (offset, length) => {
+          const r = await fetch(e.url, { headers: { Range: `bytes=${offset}-${offset + length - 1}` } });
+          if (!r.ok) throw new Error(`${e.url}: HTTP ${r.status}`);
+          return new Uint8Array(await r.arrayBuffer());
+        },
   }));
 }
 
-const quiet = () => ({ print: () => {}, printErr: () => {} });
+// count Web Workers of a script, each started and ready, as lib/pool.js takes them
+function startWorkers(script, count) {
+  return Promise.all(Array.from({ length: count }, () => new Promise((resolve, reject) => {
+    const w = new Worker(script, { type: 'module' });
+    w.onerror = (e) => reject(new Error(`${script}: ${e.message}`));
+    w.addEventListener('message', ({ data }) => {
+      if (data.ready) resolve({ w, version: data.version, zxcVersion: data.zxcVersion, hevc: data.hevc, opus: data.opus,
+                                post: (m, t) => w.postMessage(m, t),
+                                onMessage: (cb) => w.addEventListener('message', ({ data: d }) => cb(d)) });
+    }, { once: true });
+  })));
+}
+
+// One kind of worker as lib/install.js takes it: { run, version, stop() }.
+async function tool(script, count, wrap) {
+  const workers = await startWorkers(script, count);
+  return { run: wrap(workerPool(workers)), version: workers[0].version, zxcVersion: workers[0].zxcVersion,
+           hevc: workers[0].hevc, opus: workers[0].opus, size: workers.length,
+           stop: () => workers.forEach((x) => x.w.terminate()) };
+}
 
 self.onmessage = async ({ data }) => {
-  setLanguage(data.lang);
   const sink = portSink(data.port);
   try {
-    log(t('readingFiles'));
-    const chosen = await findGame(chosenFiles(data.entries));
-    if (!chosen.game) {
-      throw new Error(t('noGame'));
-    }
-    const manifest = JSON.parse(new TextDecoder().decode(await fetchBytes('./release/manifest.json')));
-    const lzx = await createLzxModule(quiet());
-    const { build, xexHash } = await identifyGame(chosen.game.files, manifest, lzxStep(lzx));
-    if (!build) {
-      throw new Error(t('notSupportedYet', { hash: xexHash }));
-    }
-    log(t('downloadingBuild'));
-    const [nro, licenses, shaderCommon, renutShaderCommon] = await Promise.all([
-      fetchBytes(programPath(build)),
-      fetchBytes('./release/LICENSES.txt'),
-      fetchBytes('./shader_common.h'),
-      // the deko3d renderer's translator header (sa2-nx's app/thirdparty/reblue-XenosRecomp/XenosRecomp/)
-      build.deko3d ? fetchBytes('./renut_shader_common.h') : null,
-    ]);
-    const nroHash = await sha256(nro);
-    if (nroHash !== build.nro_sha256) {
-      throw new Error(t('buildMismatch', { hash: nroHash }));
-    }
-    const modules = {
-      hlsl: await createHlslModule(quiet()),
-      dxc: await createDxcModule(quiet()),
-      pack: await createPackModule(quiet()),
-      lzx,
+    const [game, manifest] = (await Promise.all([fetchBytes('./game.json'), fetchBytes('./release/manifest.json')]))
+      .map((b) => JSON.parse(new TextDecoder().decode(b)));
+    const cores = Math.max(1, Math.min(16, (navigator.hardwareConcurrency || 4) - 1));
+    // A GLSL worker (Pyodide, numpy, DXC) holds about 0.5 GB: at most 8, fewer on a device with less memory
+    // (navigator.deviceMemory, in GB, Chromium only). uam and packing workers are small: one per core.
+    const glslThreads = Math.max(1, Math.min(cores, 8, navigator.deviceMemory || 8));
+    const tools = {
+      cores,
+      glslThreads,
+      translator: game.shaders ? await createRenutHlslModule(quiet()) : null,
+      lzx: game.shaders ? await createLzxModule(quiet()) : null,
+      xexp: game.shaders && game.update ? await createXexpModule(quiet()) : null,  // the title update's patch
+      startGlsl: (n) => tool('./glsl_worker.js', n, glslMaker),
+      startUam: (n) => tool('./uam_worker.js', n, uamCompile),
+      // culdcept-nx-installer (2026-11-20): LZ4 and ZXC on one worker (pack_worker.js, from rr6-nx-installer)
+      startPack: (n) => tool('./pack_worker.js', n, (pool) => (bytes, codec) =>
+        pool.run({ bytes, codec, level: CODECS[codec].level, block: CODECS[codec].block }, [bytes.buffer])
+          .then((r) => r.bytes)),
+      // culdcept-nx-installer (2026-11-20): the movies' H.265 re-encode (movie_worker.js), one movie per worker
+      startMovies: (n) => tool('./movie_worker.js', n, (pool) => (bytes, opts) =>
+        pool.run({ bytes, ...opts }, [bytes.buffer])),
+      // culdcept-nx-installer (2026-11-20): the sounds' Opus re-encode (audio_worker.js), one sound file per job
+      startAudio: (n) => tool('./audio_worker.js', n, (pool) => (bytes, opts) =>
+        pool.run({ bytes, ...opts }, [bytes.buffer])),
     };
-    if (build.deko3d) {
-      modules.renutHlsl = await createRenutHlslModule(quiet());
-      modules.spirvCross = await createSpirvCrossModule(quiet());
-    }
-    const release = { manifest, nro, licenses, shaderCommon, renutShaderCommon };
-    const result = await createPackage(chosen, release, modules, sink, log, progress,
-      (size) => postMessage({ type: 'size', size }), { update: Boolean(data.update) });
-    postMessage({ type: 'done', result });
+    const report = await buildPackage({
+      game, manifest, files: gameFiles(data.entries), dlc: gameFiles(data.dlc || []), update: gameFiles(data.update || []),
+      fetchRelease, tools, sink,
+      compile: data.compile !== false,
+      movies: data.movies !== false,
+      audio: data.audio !== false,
+      leaveOut: data.leaveOut || [],  // sa2-nx-ult-installer (2026-11-22): the game.json "leave_out" ids ticked
+      events: {
+        log: (text) => postMessage({ type: 'log', text }),
+        progress: (fraction) => postMessage({ type: 'progress', fraction }),
+        start: (estimate) => postMessage({ type: 'start', estimate }),
+      },
+    });
+    postMessage({ type: 'done', seconds: report.seconds, size: report.size });
   } catch (error) {
     const message = error.message || String(error);
     sink.fail(message);

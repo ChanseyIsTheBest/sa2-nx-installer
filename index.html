@@ -3,158 +3,146 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>sa2-nx installer</title>
-  <meta name="description" content="Builds the Nintendo Switch package of Sonic Adventure 2 from your own Xbox 360 copy, in your browser.">
-  <link rel="icon" type="image/png" sizes="32x32" href="icons/icon-32.png">
-  <link rel="icon" type="image/png" sizes="16x16" href="icons/icon-16.png">
-  <link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png">
-  <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+  <title>web installer</title>
+  <meta name="description" content="Builds the Nintendo Switch package of a renut-ultimate port from your own copy of the game, in your browser.">
+  <link rel="icon" href="./icon.png">
   <style>
-    :root { color-scheme: dark; --bg: #070b1c; --panel: rgba(12, 18, 44, .82); --inset: rgba(4, 7, 20, .78); --text: #eef2fb;
-      --muted: #aab4cf; --accent: #f5c518; --blue: #2f6cf0; --good: #4fd17f; --bad: #ff6b6b; --link: #63a4ff;
-      --link-hover: #9cc4ff; --line: rgba(255, 255, 255, .10);
-      --gap: clamp(8px, 1.1vh, 14px); --pad: clamp(10px, 1.5vh, 18px); --edge: clamp(10px, 2vh, 28px); }
+    /* renut_nx_ultimate_installer: a port changes the colours here, game.json and icon.png */
+    /* sa2-nx-ult-installer: Sonic blue and ring gold on a deep night blue (the title screen's sky) */
+    :root { color-scheme: dark; --bg: #070d1f; --panel: rgba(16, 28, 62, .88); --inset: rgba(6, 12, 30, .82); --text: #eef3ff;
+      --muted: #aab8dc; --accent: #ffcc33; --sky: #3d7bff; --primary: #1f56d6; --good: #5fd27f; --bad: #ff6b6b;
+      --line: rgba(255, 255, 255, .12); }
     * { box-sizing: border-box; }
     [hidden] { display: none !important; }
-    html { background: var(--bg); }
     body { margin: 0; min-height: 100vh; color: var(--text); background: var(--bg);
-      font: clamp(15px, 1.7vh, 16px)/1.5 ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif; }
-    /* a night sky in the colours of the game's key art: blue, violet and a rose glow, with a fast streak */
+      font: 16px/1.5 ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif; }
     body::before { content: ""; position: fixed; inset: 0; z-index: -1;
-      background:
-        linear-gradient(115deg, transparent 46%, rgba(245, 197, 24, .08) 48%, transparent 50%),
-        linear-gradient(115deg, transparent 54%, rgba(99, 164, 255, .07) 55.5%, transparent 57%),
-        radial-gradient(60% 45% at 85% 12%, rgba(232, 92, 160, .30), transparent 70%),
-        radial-gradient(70% 55% at 10% 20%, rgba(47, 108, 240, .38), transparent 70%),
-        radial-gradient(80% 60% at 50% 110%, rgba(120, 70, 220, .35), transparent 70%),
-        var(--bg); }
-    main { width: 100%; max-width: 960px; margin: 0 auto; padding: var(--edge) 16px;
-      display: flex; flex-direction: column; gap: var(--gap); }
+      background: radial-gradient(60% 45% at 85% 10%, rgba(255, 204, 51, .12), transparent 70%),
+                  radial-gradient(70% 55% at 10% 20%, rgba(61, 123, 255, .22), transparent 70%), var(--bg); }
+    main { max-width: 860px; margin: 0 auto; padding: 28px 16px; display: flex; flex-direction: column; gap: 14px; }
     header { text-align: center; }
-    .logo { display: block; width: clamp(84px, 13vh, 132px); height: auto; margin: 0 auto calc(var(--gap) * .8);
-      border-radius: 22%; box-shadow: 0 10px 34px rgba(0, 0, 0, .55), 0 0 0 1px rgba(255, 255, 255, .12); }
-    h1 { font-size: clamp(1.7rem, 4.6vh, 2.6rem); font-weight: 900; font-style: italic; letter-spacing: .01em;
-      line-height: 1.1; margin: 0 0 var(--gap); text-shadow: 0 2px 14px rgba(0, 0, 0, .8); }
-    h1 .accent { color: var(--accent); }
-    p.lead { color: #d9e0f2; font-size: clamp(15px, 1.8vh, 17px); margin: 0 auto; max-width: 760px; text-wrap: balance;
-      text-shadow: 0 1px 10px rgba(0, 0, 0, .9); }
-    p.lead strong { white-space: nowrap; }
-    section { background: var(--panel); border: 1px solid var(--line); border-radius: 14px;
-      padding: var(--pad) calc(var(--pad) + 4px); box-shadow: 0 12px 32px rgba(0, 0, 0, .35);
-      -webkit-backdrop-filter: blur(10px) saturate(1.15); backdrop-filter: blur(10px) saturate(1.15); }
-    h2 { font-size: 1.1em; font-weight: 800; margin: 0 0 calc(var(--pad) * .6); }
-    button, label.button { display: inline-block; background: #283463; color: #fff; border: 1px solid #344281;
-      border-radius: 10px; padding: .5em 1.05em; font-family: inherit; font-size: 1em; font-weight: 700; line-height: 1.3;
-      cursor: pointer; margin: 4px 8px 4px 0; transition: background .12s, border-color .12s; }
-    button:not(:disabled):hover, label.button:hover { background: #31407a; border-color: #5a6db8; }
-    button:focus-visible, label.button:focus-within { outline: 2px solid var(--link); outline-offset: 2px; }
-    button.primary:not(:disabled) { background: var(--blue); border-color: #5b8cff; }
-    button.primary:not(:disabled):hover { background: #3f7bff; }
-    button:disabled { background: #1c2340; border-color: #1c2340; color: #6f7894; cursor: default; }
+    h1 { font-size: 2.2rem; font-weight: 900; margin: 0 0 12px; overflow-wrap: anywhere; }
+    h1 span { color: var(--accent); }
+    .icon { display: block; width: 160px; height: 160px; margin: 0 auto 14px; border-radius: 22px; object-fit: cover;
+      border: 1px solid var(--line); box-shadow: 0 10px 30px rgba(0, 0, 0, .55); }
+    .lead { color: var(--muted); margin: 0 auto; max-width: 680px; }
+    .version { display: inline-block; margin-top: 10px; padding: 2px 10px; border: 1px solid var(--accent); border-radius: 999px;
+      color: var(--accent); font-size: .85rem; font-weight: 700; }
+    section { background: var(--panel); border: 1px solid var(--line); border-radius: 14px; padding: 16px 20px; }
+    h2 { font-size: 1.1em; margin: 0 0 10px; }
+    button, label.button { display: inline-block; background: #1b2b52; color: #fff; border: 1px solid #34508a; border-radius: 10px;
+      padding: .5em 1.05em; font: inherit; font-weight: 700; cursor: pointer; margin: 0 6px 6px 0; }
+    button.primary:not(:disabled) { background: var(--primary); border-color: #6f95f0; }
+    button:disabled { background: #111a30; border-color: #111a30; color: #5b6890; cursor: default; }
     input[type=file] { position: absolute; opacity: 0; width: 1px; height: 1px; }
-    .hint { margin: calc(var(--pad) * .5) 0 0; }
-    .note { margin: calc(var(--pad) * .6) 0 0; padding: calc(var(--pad) * .45) calc(var(--pad) * .6);
-      background: var(--inset); border: 1px solid var(--line); border-radius: 10px; }
-    .chosen { color: var(--muted); margin-top: calc(var(--pad) * .35); word-break: break-all; }
-    .choices { display: grid; justify-items: start; row-gap: calc(var(--pad) * .4); }
-    .choices button { margin: 0; }
-    .choices button + .flow { margin-top: calc(var(--pad) * .7); }
-    .detected { display: flex; align-items: center; gap: 14px; margin-top: calc(var(--pad) * .7); background: var(--inset);
-      border: 1px solid var(--line); border-radius: 10px; padding: 10px 16px; min-height: 64px; }
-    .detected.good { border-color: var(--good); }
-    .detected.bad { border-color: var(--bad); }
-    .detected img { width: 44px; height: 44px; border-radius: 10px; flex: none; }
-    .detected .status { font-size: 1.2rem; font-weight: 800; }
-    .detected .detail { color: var(--muted); font-size: .92rem; }
-    .detected.good .detail { color: var(--good); }
-    .detected.bad .detail { color: var(--bad); }
-    .fingerprint { font: 12px ui-monospace, monospace; word-break: break-all; user-select: all; }
-    progress { width: 100%; height: 12px; margin-top: calc(var(--pad) * .7); accent-color: var(--accent); }
-    #log { font: 13px/1.45 ui-monospace, monospace; color: var(--muted); white-space: pre-wrap; max-height: 9.5em;
-      overflow: auto; margin: 8px 0 0; }
+    .chosen { color: var(--muted); margin-top: 8px; }
+    .detected { margin-top: 12px; background: var(--inset); border: 1px solid var(--line); border-radius: 10px; padding: 10px 14px;
+      word-break: break-word; }
+    .detected.good { border-color: var(--good); color: var(--good); }
+    .detected.bad { border-color: var(--bad); color: var(--bad); }
+    .option { display: flex; gap: 10px; align-items: flex-start; margin: 4px 0 12px; color: var(--muted); }
+    .option input { margin-top: 5px; }
+    progress { width: 100%; height: 12px; margin-top: 12px; accent-color: var(--sky); }
+    #log { font: 13px/1.45 ui-monospace, monospace; color: var(--muted); white-space: pre-wrap; max-height: 14em; overflow: auto;
+      margin-top: 8px; }
     .error { color: var(--bad); }
     ol { margin: 0; padding-left: 20px; }
-    ol li + li { margin-top: calc(var(--pad) * .35); }
-    .flow { margin: 0; font-weight: 700; }
-    code { background: rgba(0, 0, 0, .45); border: 1px solid var(--line); padding: 1px 5px; border-radius: 4px;
-      color: #fff; font-weight: 700; word-break: break-all; }
-    a { color: var(--link); font-weight: 700; text-underline-offset: 2px; }
-    a:hover { color: var(--link-hover); }
-    .languages { display: flex; justify-content: center; flex-wrap: wrap; gap: 8px; margin: 0 0 calc(var(--gap) * 1.3); }
-    .languages button, .languages button:not(:disabled):hover { background: none; border: 0; box-shadow: none; }
-    .languages button { padding: 4px; margin: 0; border-radius: 6px; line-height: 0; opacity: .55; cursor: pointer;
-      transition: opacity .15s, transform .15s; }
-    .languages button:not(:disabled):hover { opacity: 1; transform: scale(1.1); }
-    .languages button[aria-pressed="true"] { opacity: 1; }
-    .languages button[aria-pressed="true"] svg { outline: 2px solid #fff; outline-offset: 2px; }
-    .languages svg { display: block; width: 30px; height: 20px; border-radius: 3px; box-shadow: 0 1px 6px rgba(0, 0, 0, .6); }
-    footer { text-align: center; }
-    .source { margin: var(--gap) 0 0; font-size: 1.1em; font-weight: 800; font-style: italic;
-      text-shadow: 0 1px 8px rgba(0, 0, 0, .8); }
-    .source a { text-decoration: none; }
-    .source a[href]:hover, .source a[href]:focus-visible { text-decoration: underline; text-underline-offset: 3px; }
-    .source a:not([href]) { color: var(--muted); }
-    .signature { margin: calc(var(--gap) * .5) 0 0; color: #d9e0f2; font-weight: 700; font-style: italic;
-      text-shadow: 0 1px 8px rgba(0, 0, 0, .8); }
-    .legal { margin: calc(var(--gap) * 1.2) auto 0; max-width: 960px; padding: calc(var(--pad) * .55) 18px; color: #e4e9f6;
-      font-size: clamp(11.5px, 1.3vh, 13px); font-weight: 600; line-height: 1.5; text-wrap: pretty;
-      background: rgba(6, 10, 26, .78); border: 1px solid var(--line); border-radius: 12px; }
-    @media (max-width: 600px) { main { padding-top: 24px; } }
+    code { overflow-wrap: anywhere; background: rgba(0, 0, 0, .45); border: 1px solid var(--line); padding: 1px 5px; border-radius: 4px; }
+    .note { color: var(--muted); font-size: .92rem; margin: 10px 0 0; }
+    footer { text-align: center; color: var(--muted); font-size: .85rem; }
   </style>
 </head>
 <body>
 <main>
   <header>
-    <nav class="languages" id="languages" aria-label="Language"></nav>
-    <img class="logo" src="icons/icon-192.png" width="192" height="192" alt="">
-    <h1>sa2-nx <span class="accent">installer</span></h1>
-    <p class="lead" data-i18n-html="lead">Builds the <strong>Nintendo Switch</strong> package of <strong>Sonic Adventure 2</strong> from your own <strong>Xbox 360</strong> copy (Xbox Live Arcade). Everything runs in <strong>this browser</strong>.</p>
+    <h1><span data-game="package"></span> web installer</h1>
+    <img class="icon" src="./icon.png" alt="" width="160" height="160" onerror="this.hidden = true">
+    <p class="lead">Builds the <strong>Nintendo Switch</strong> package of <strong data-game="title"></strong> from your own
+      copy. Everything runs in <strong>this browser</strong>: nothing is uploaded.</p>
+    <span class="version" id="version"></span>
   </header>
-
   <section>
-    <h2 data-i18n="step1">1. Choose your game</h2>
-    <label class="button" for="package" data-i18n="formatPackage">Package file</label>
-    <label class="button" for="folder" data-i18n="formatFolder">Folder</label>
-    <input id="package" type="file" multiple>
+    <h2><span class="n">1. </span>Choose your game</h2>
+    <!-- sa2-nx-ult-installer (2026-11-22): SA2's copy is an Xbox Live package (no extension; app.js reads it with
+         lib/stfs.js when it is not a disc image), so the button takes any file -->
+    <label class="button" for="iso">Choose the game's package</label>
+    <label class="button" for="folder">Choose an extracted folder</label>
+    <input id="iso" type="file">
     <input id="folder" type="file" webkitdirectory>
-    <p class="note" data-i18n-html="ownCopy"></p>
-    <p class="hint" data-i18n-html="formatHint"></p>
+    <p class="note" data-text="game"></p>
     <div class="chosen" id="chosen">Nothing chosen yet.</div>
+    <div class="detected" id="detected" hidden></div>
   </section>
-
+  <!-- blur-nx-installer (2026-11-18): the title update, for a port recompiled from one (game.json "update") -->
+  <section id="update-step" hidden>
+    <h2><span class="n"></span>Add <span data-update="title"></span></h2>
+    <label class="button" for="update">Choose the update package</label>
+    <label class="button" for="update-folder">Choose an extracted folder</label>
+    <input id="update" type="file">
+    <input id="update-folder" type="file" webkitdirectory>
+    <p class="note" data-text="update"></p>
+    <div class="chosen" id="update-chosen">Nothing chosen yet.</div>
+    <div class="detected" id="update-detected" hidden></div>
+  </section>
+  <section id="dlc-step">
+    <h2><span class="n">2. </span>Add the DLC (optional)</h2>
+    <label class="button" for="dlc">Choose packages</label>
+    <label class="button" for="dlc-folder">Choose a folder of packages</label>
+    <input id="dlc" type="file" multiple>
+    <input id="dlc-folder" type="file" webkitdirectory>
+    <p class="note" data-text="dlc"></p>
+    <div class="chosen" id="dlc-chosen">None.</div>
+    <div class="detected" id="dlc-detected" hidden></div>
+  </section>
   <section>
-    <h2 data-i18n="step2">2. Create the package</h2>
-    <div class="choices">
-      <p class="flow" data-i18n-html="step2First">If you are installing the game for the first time, use:</p>
-      <button id="create" class="primary" disabled data-i18n="create">Create sa2-nx.zip</button>
-      <p class="flow" data-i18n-html="step2Update"></p>
-      <button id="update" disabled data-i18n="createUpdate">Create sa2-nx-update.zip</button>
-    </div>
-    <div class="detected" id="detected" hidden>
-      <img src="icons/icon-192.png" width="44" height="44" alt="">
-      <div>
-        <div class="status" id="status"></div>
-        <div class="detail" id="detail"></div>
-        <div class="fingerprint" id="fingerprint" hidden></div>
-      </div>
-    </div>
+    <h2><span class="n">3. </span>Create the package</h2>
+    <label class="option" id="compile-row"><input id="compile" type="checkbox" checked>
+      <span>Compile the shaders for the Switch here (recommended: the game starts and plays without compile stutters).
+        Unticked, the Switch compiles each one the first time the game draws with it.</span></label>
+    <!-- culdcept-nx-installer (2026-11-20): the movies' H.265 re-encode (game.json "movies") -->
+    <label class="option" id="movies-row" hidden><input id="movies" type="checkbox" checked>
+      <span>Re-encode the movies to H.265 (recommended: about 1,060 MB of movies become about 400 MB, or 405 MB become
+        160 MB without the interviews, and the Switch's video hardware plays them). Needs a browser with an H.265 encoder (Chrome or Edge on a recent graphics card); without
+        one, or unticked, the movies are copied as they are.</span></label>
+    <!-- culdcept-nx-installer (2026-11-20): the sounds' Opus re-encode (game.json "audio") -->
+    <label class="option" id="audio-row" hidden><input id="audio" type="checkbox" checked>
+      <span>Re-encode the music to Opus (recommended: about 365 MB of music become about 166 MB, at 128 kbit/s). Needs a
+        browser with an Opus encoder (Chrome, Edge or Firefox); without one, or unticked, it is copied as it is. The
+        voices and sound effects stay as they are.</span></label>
+    <!-- sa2-nx-ult-installer (2026-11-22): game.json "leave_out", a box each (app.js) -->
+    <div id="leave-out-rows"></div>
+    <button id="create" class="primary" disabled>Create the zip</button>
+    <!-- culdcept-nx-installer: the three shaders of default.xex made here (game.json "shaders", 2026-11-21; no DKSH
+         cache: "compile": false); the game files packed by its "lz4" and "zxc" lists (2026-11-20) -->
+    <!-- sa2-nx-ult-installer (2026-11-22): SA2's sizes (Culdcept's were here), from the whole package of 2026-11-22 -->
+    <p class="note">Your game's files are packed on all of this computer's cores with LZ4, the H.265 movies with ZXC (the
+      game reads them as they were), the movies re-encoded to H.265 and the music to Opus (above): about 2,400 MB down
+      to 1,170 MB, or 930 MB with the interviews left out. They go into one file, <code>game_root.nxpack</code> (with its
+      index, <code>game_root.nxidx</code>), which the Switch opens once instead of thousands of files. The game's shaders
+      are translated here for the Switch. The zip downloads while it is written; the pack, most of it, comes once
+      every file is done.</p>
     <progress id="bar" max="1" value="0" hidden></progress>
     <div id="log" role="log" aria-live="polite"></div>
   </section>
-
   <section>
-    <h2 data-i18n="step3">3. Copy it to the Switch</h2>
+    <h2><span class="n">4. </span>Copy it to the Switch</h2>
     <ol>
-      <li data-i18n-html="step3Extract"></li>
-      <li data-i18n-html="step3Start"></li>
-      <li data-i18n-html="step3First"></li>
+      <li>If you have an older version, its <code>switch/<span data-game="package"></span>/game_root</code> folder is
+        not read any more (the game reads <code>game_root.nxpack</code>): delete it to free its space. Copy both
+        <code>game_root.nxpack</code> and <code>game_root.nxidx</code> over the old ones.</li>
+      <li>Extract the zip to the root of the SD card: it makes <code>switch/<span data-game="package"></span>/</code>.</li>
+      <li>In <strong>Sphaira</strong>, find the game, press X to open Options and choose <strong>Install Forwarder</strong>.
+        Make sure <strong>Address Space</strong> is set to <strong>39-bit</strong>, choose <strong>Create Forwarder</strong>,
+        then start the game from the Home Screen. A forwarder made from an earlier version keeps that version's icon: make
+        it again to get the new one.</li>
+      <li data-text="settings"></li>
     </ol>
   </section>
-
   <footer>
-    <p class="source"><a id="sourceLink" target="_blank" rel="noopener" data-i18n="sourceCode">Source code</a></p>
-    <p class="signature" data-i18n="signature">a ChanseyIsTheBest project</p>
-    <p class="legal" data-i18n="legal"></p>
+    <p>sa2-nx-installer, made with renut_nx_ultimate_installer (GPL-3.0) through culdcept-nx-installer, from
+      kameo-nx-installer, rr6-nx-installer and katamari-nx-installer. See
+      <a href="https://github.com/ChanseyIsTheBest/sa2-nx-installer/blob/main/NOTICES.md">NOTICES.md</a>.</p>
+    <p data-text="footer"></p>
   </footer>
 </main>
 <script type="module" src="./app.js"></script>

@@ -1,4 +1,5 @@
-# Auto detect text files and perform LF normalization
-* text=auto
-*.wasm binary
-*.png binary
+# The page checks every release file against the SHA-256 that release/manifest.json names for it, and GitHub Pages
+# serves the bytes git stores. With core.autocrlf, git can store a text file with other line ends than the copy
+# make_release.py hashed, and the page then refuses it (blur-nx-installer's README.txt, 2026-11-19). Git keeps
+# release/ byte for byte.
+release/** -text

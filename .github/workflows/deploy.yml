@@ -46,15 +46,13 @@ jobs:
       - name: Check it against the list of builds
         run: node .github/verify_release.mjs
 
-      - name: Check the page's own code
-        run: |
-          node test/texts_node.mjs
-          node test/fnv_node.mjs
-
       - name: Assemble the site
         run: |
-          mkdir _site
-          cp -r index.html app.js worker.js sw.js icons shader_common.h renut_shader_common.h lib wasm release _site/
+          mkdir -p _site/wasm
+          cp -r index.html app.js worker.js sw.js glsl_worker.js uam_worker.js movie_worker.js audio_worker.js \
+            pack_worker.js game.json icon.png lib py vendor release _site/
+          cp wasm/*.mjs wasm/*.wasm _site/wasm/
+          du -sh _site
 
       - uses: actions/configure-pages@v5
 

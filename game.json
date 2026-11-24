@@ -1,0 +1,51 @@
+{
+  "title": "Sonic Adventure 2",
+  "package": "sa2-nx",
+  "nro": "sa2.nro",
+  "shaders": true,
+  "compile": false,
+  "lz4": [
+    "(?!.*\\.xex$|gd/.*\\.sfd$|gd/.*\\.wmv$|gd/ADX/.*).*"
+  ],
+  "zxc": [],
+  "pack": true,
+  "movies": {
+    "match": "gd/.*\\.(sfd|wmv)",
+    "fraction": 0.35,
+    "gop": 120
+  },
+  "audio": {
+    "match": "gd/ADX/.*\\.adx",
+    "bitrates": [
+      {
+        "match": "gd/ADX/.*",
+        "stereo": 128000,
+        "mono": 48000
+      },
+      {
+        "match": ".*",
+        "stereo": 64000,
+        "mono": 32000
+      }
+    ]
+  },
+  "skip": [],
+  "leave_out": [
+    {
+      "id": "interviews",
+      "match": "gd/interview(_jp)?\\.wmv",
+      "checked": false,
+      "text": "Leave out the two interview videos (BONUS VIDEO in HELP &amp; OPTIONS, shown after 5 hours of play): about 240 MB smaller (658 MB in the game). Left out, BONUS VIDEO goes straight back to the menu."
+    }
+  ],
+  "needs": [
+    "gd/.*",
+    "Shader/.*"
+  ],
+  "dlc": true,
+  "texts": {
+    "game": "Your copy of Sonic Adventure 2 for the Xbox 360 (Xbox Live Arcade): its content package, or the folder it was extracted to (with <code>default.xex</code>, <code>gd/</code> and <code>Shader/</code>).",
+    "settings": "The game writes its settings file, <code>sa2.toml</code>, at its first start.",
+    "footer": "Sonic Adventure 2 is a trademark of SEGA. Not affiliated with or endorsed by SEGA, Microsoft or Nintendo."
+  }
+}
